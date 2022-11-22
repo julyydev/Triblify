@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import placeRouter from './routers/placeRouter';
 
 const app = express();
