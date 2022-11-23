@@ -1,9 +1,6 @@
-import axios from 'axios';
 import { Request, Response } from 'express';
-import dotenv from 'dotenv';
 import { Client } from '@googlemaps/google-maps-services-js';
 
-dotenv.config();
 const client = new Client();
 
 export const getCoordinate = async (req: Request, res: Response) => {

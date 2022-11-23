@@ -1,3 +1,4 @@
+import './env';
 import express from 'express';
 import placeRouter from './routers/placeRouter';
 import routeRouter from './routers/routeRouter';
