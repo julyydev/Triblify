@@ -5,6 +5,7 @@ import routeRouter from './routers/routeRouter';
 
 const app = express();
 
+app.use(express.json());
 app.use('/place', placeRouter);
 app.use('/route', routeRouter);
 
