@@ -4,6 +4,7 @@ import {
     LatLng,
     TravelMode,
 } from '@googlemaps/google-maps-services-js';
+import { PlaceMapper } from '../mappers/place';
 
 const client = new Client();
 
@@ -50,7 +51,7 @@ export const getPlacesWithDetail = async (req: Request, res: Response) => {
     client
         .placeDetails({
             params: {
-                place_id: place_id as string,
+                place_id: place_id,
                 key: process.env.GOOGLE_API_KEY as string,
             },
         })
@@ -78,7 +79,11 @@ export const getPlacesByQuery = async (req: Request, res: Response) => {
             },
         })
         .then(response => {
-            return res.json(response.data);
+            const newObj = response.data.results.map(item => {
+                const newData = new PlaceMapper(item).getData();
+                return newData;
+            });
+            return res.json(newObj);
         });
 };
 

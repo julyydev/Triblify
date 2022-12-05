@@ -3,19 +3,26 @@ import {
     Client,
     DistanceMatrixResponseData,
     LatLng,
+    TravelMode,
 } from '@googlemaps/google-maps-services-js';
+import { Coordinate } from '../\btypes/coordinate';
 
 const client = new Client();
 
 // 장소 배열을 받아서 경로를 생성하는
 export const makeRoute = async (req: Request, res: Response) => {
-    // const { places } = req.body.places;
+    const {
+        mode,
+        coordinate: { start, wayPoints, end },
+    } = req.body;
 
     client
         .directions({
             params: {
-                origin: { lat: 47.7510741, lng: -120.7401386 } as LatLng,
-                destination: { lat: 31.9685988, lng: -99.9018131 } as LatLng,
+                origin: start,
+                waypoints: wayPoints,
+                destination: end,
+                mode: mode,
                 key: process.env.GOOGLE_API_KEY as string,
             },
         })
@@ -24,50 +31,71 @@ export const makeRoute = async (req: Request, res: Response) => {
         });
 };
 
-const start: LatLng = {
-    lat: 35.7648331,
-    lng: 140.3860192,
-}; // 나리타 공항
+// const start: LatLng = {
+//     lat: 35.7648331,
+//     lng: 140.3860192,
+// }; // 나리타 공항
 
-const wayPoints: LatLng[] = [
-    {
-        lat: 35.9071163,
-        lng: 139.4824443,
-    }, // 가와고에역
-    {
-        lat: 35.9168352,
-        lng: 139.6296859,
-    }, // 히카와 신사
-    {
-        lat: 35.7295028,
-        lng: 139.7109001,
-    }, // 이케부쿠로역
-    {
-        lat: 35.6761919,
-        lng: 139.6503106,
-    }, // 도쿄 타워
-];
+// const wayPoints: LatLng[] = [
+//     {
+//         lat: 35.9071163,
+//         lng: 139.4824443,
+//     }, // 가와고에역
+//     {
+//         lat: 35.9168352,
+//         lng: 139.6296859,
+//     }, // 히카와 신사
+//     {
+//         lat: 35.7295028,
+//         lng: 139.7109001,
+//     }, // 이케부쿠로역
+//     {
+//         lat: 35.6761919,
+//         lng: 139.6503106,
+//     }, // 도쿄 타워
+// ];
 
-const end: LatLng = {
-    lat: 35.62651880000001,
-    lng: 139.7233535,
-}; // 고탄다 호텔
+// const end: LatLng = {
+//     lat: 35.62651880000001,
+//     lng: 139.7233535,
+// }; // 고탄다 호텔
 
-const names = [
-    '나리타 공항',
-    '가와고에역',
-    '히카와 신사',
-    '이케부쿠로역',
-    '도쿄 타워',
-    '고탄다 호텔',
-];
+// const names = [
+//     '나리타 공항',
+//     '가와고에역',
+//     '히카와 신사',
+//     '이케부쿠로역',
+//     '도쿄 타워',
+//     '고탄다 호텔',
+// ];
 
-export const makeRouteMatrix = async (req: Request, res: Response) => {
+interface Spot {
+    name: string;
+    coordinate: Coordinate;
+}
+
+interface MakeRouteMatrixDto {
+    start: Spot;
+    wayPoints: Spot[];
+    end: Spot;
+}
+
+export const makeRouteMatrix = async ({
+    start,
+    wayPoints,
+    end,
+}: MakeRouteMatrixDto) => {
     return await client.distancematrix({
         params: {
             key: process.env.GOOGLE_API_KEY as string,
-            origins: [start, ...wayPoints],
-            destinations: [...wayPoints, end],
+            origins: [
+                start.coordinate,
+                ...wayPoints.map(item => item.coordinate),
+            ],
+            destinations: [
+                ...wayPoints.map(item => item.coordinate),
+                end.coordinate,
+            ],
         },
     });
     // .then(response => {
@@ -77,7 +105,8 @@ export const makeRouteMatrix = async (req: Request, res: Response) => {
 
 // 0 3 4 2 1 5
 export const testRoute = async (req: Request, res: Response) => {
-    await makeRouteMatrix(req, res).then(response => {
+    const { start, wayPoints, end }: MakeRouteMatrixDto = req.body;
+    await makeRouteMatrix({ start, wayPoints, end }).then(response => {
         let indexArray: number[] = [];
 
         response.data.rows.map((row, startIndex) => {
@@ -129,12 +158,22 @@ export const testRoute = async (req: Request, res: Response) => {
         console.log(indexArray);
 
         const routeNames = [];
-        routeNames.push(names[0]);
-        indexArray.map(item => routeNames.push(names[item]));
-        routeNames.push(names[wayPoints.length + 1]);
+        routeNames.push(start.name);
+        indexArray.map(item => routeNames.push(wayPoints[item - 1].name));
+        routeNames.push(end.name);
+
+        const wayPointsCoordinates: Coordinate[] = [];
+        indexArray.map(item =>
+            wayPointsCoordinates.push(wayPoints[item - 1].coordinate),
+        );
 
         return res.json({
             route: routeNames,
+            coordinates: {
+                start: start.coordinate,
+                wayPoints: wayPointsCoordinates,
+                end: end.coordinate,
+            },
             total_time: minTime,
         });
     });
